@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment verification simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: Calibri, sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+    </style>
+</head>
+<body class="p-6">
+
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-extrabold text-gray-900 mb-2">Payment verification simulator</h1>
+            <p class="text-gray-500">Simulate and verify payments in your browser</p>
+        </header>
+
+        <!-- Payment Simulation Form -->
+        <section class="bg-gray-50 p-6 rounded-xl mb-8">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">New Payment</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">Amount (£)</label>
+                    <input type="number" id="amount" step="0.01" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out">
+                </div>
+                <div>
+                    <label for="recipient" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <input type="text" id="recipient" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out">
+                </div>
+            </div>
+            <button id="simulateBtn" class="mt-6 w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition-all duration-300 ease-in-out">
+                Simulate Payment
+            </button>
+        </section>
+
+        <!-- Payments and Verification Section -->
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Recent Payments -->
+            <div class="bg-gray-50 p-6 rounded-xl">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">Recent Payments</h2>
+               <ul id="paymentsList" class="space-y-4"></ul>
+            </div>
+
+            <!-- Verification -->
+            <div class="bg-gray-50 p-6 rounded-xl">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">Verification</h2>
+                <button id="verifyBtn" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700 transition-all duration-300 ease-in-out mb-4">
+                    Run Verification
+                </button>
+                <div id="verificationResults" class="space-y-2">
+                    <!-- Verification results displayed here -->
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // --- Simulated Database ---
+        const paymentsDatabase = {}
+        const amountInput = document.getElementById('amount');
+        const recipientInput = document.getElementById('recipient');
+        const paymentsList = document.getElementById('paymentsList');
+        const verificationResults = document.getElementById('verificationResults');
+        const simulateBtn = document.getElementById('simulateBtn');
+        const verifyBtn = document.getElementById('verifyBtn');
+
+        function simulatePayment(amount, recipient) {
+            /**
+             * Simulates a payment transaction
+             */
+            const transactionId = crypto.randomUUID();
+            const timestamp = new Date().toISOString();
+
+            const paymentRecord = {
+                transaction_id: transactionId,
+                amount: parseFloat(amount).toFixed(2),
+                recipient: recipient,
+                // New: Status
+                status: "pending",
+                timestamp: timestamp
+            };
+            
+            paymentsDatabase[transactionId] = paymentRecord;
+            console.log(`Payment of £${paymentRecord.amount} to ${recipient} initiated with transaction ID: ${transactionId}`);
+            return paymentRecord;
+        }
+
+        function displayPayments() {
+            /**
+             * Updates the list of payments.
+             */
+            paymentsList.innerHTML = '';
+            for (const id in paymentsDatabase) {
+                const payment = paymentsDatabase[id];
+                const listItem = document.createElement('li');
+                
+                //Stats
+                let statusColorClass = '';
+                let statusSymbol = '';
+                if (payment.status === 'approved') {
+                    statusColorClass = 'bg-green-100 border-green-200';
+                    statusSymbol = '✅';
+                } else if (payment.status === 'failed') {
+                    statusColorClass = 'bg-red-100 border-red-200';
+                    statusSymbol = '❌';
+                } else {
+                    statusColorClass = 'bg-white border-gray-200';
+                    statusSymbol = '⏳';
+                }
+
+                listItem.className = `p-4 rounded-lg shadow-sm border text-sm flex items-center justify-between ${statusColorClass}`;
+                listItem.innerHTML = `
+                    <div>
+                        <p class="font-bold text-gray-900">${payment.recipient}</p>
+                        <p class="text-gray-600">Amount: £${payment.amount}</p>
+                        <p class="text-gray-400 truncate text-xs">ID: ${payment.transaction_id}</p>
+                    </div>
+                    <div class="font-bold text-lg">${statusSymbol}</div>
+                `;
+                paymentsList.appendChild(listItem);
+            }
+        }
+
+        function batchVerifyPayments() {
+            /**
+             * Verifies all payments in DB 
+             * Verification process
+             */
+            verificationResults.innerHTML = '<p class="text-gray-500 animate-pulse">Processing verification...</p>';
+            
+    
+            setTimeout(() => {
+                verificationResults.innerHTML = '';
+                
+                const allIds = Object.keys(paymentsDatabase);
+                
+                if (allIds.length === 0) {
+                    verificationResults.innerHTML = `<p class="text-gray-500">No payments to verify.</p>`;
+                    return;
+                }
+                
+            
+                allIds.forEach(id => {
+                    const payment = paymentsDatabase[id];
+                    const isSuccess = Math.random() > 0.2;
+                    
+                    if (isSuccess) {
+                        payment.status = 'approved';
+                    } else {
+                        payment.status = 'failed';
+                    }
+                    
+                    const resultItem = document.createElement('p');
+                    resultItem.className = `p-3 rounded-lg font-bold text-sm ${isSuccess ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
+                    resultItem.innerHTML = isSuccess 
+                        ? `✅ Transaction with ID ${id} Approved.`
+                        : `❌ Transaction with ID ${id} Failed.`
+                    
+                    verificationResults.appendChild(resultItem);
+                });
+                
+            
+                displayPayments();
+
+            }, 1500); //API
+        }
+
+    
+        simulateBtn.addEventListener('click', () => {
+            const amount = amountInput.value;
+            const recipient = recipientInput.value;
+            
+            if (amount && recipient) {
+                simulatePayment(amount, recipient);
+                displayPayments();
+                amountInput.value = '';
+                recipientInput.value = '';
+            } else {
+                
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center';
+                modal.innerHTML = `
+                    <div class="p-8 bg-white rounded-lg shadow-xl text-center">
+                        <p class="text-lg font-bold text-gray-800 mb-4">Please enter both amount and recipient.</p>
+                        <button class="px-4 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700" onclick="document.body.removeChild(this.parentNode.parentNode)">OK</button>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+        });
+
+        verifyBtn.addEventListener('click', batchVerifyPayments);
+
+    </script>
+
+</body>
+</html>
